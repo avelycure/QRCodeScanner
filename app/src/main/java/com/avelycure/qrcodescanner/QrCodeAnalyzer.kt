@@ -1,13 +1,72 @@
 package com.avelycure.qrcodescanner
 
+import android.graphics.ImageFormat
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.google.zxing.*
+import com.google.zxing.common.HybridBinarizer
+import java.lang.Exception
+import java.nio.ByteBuffer
 
 class QrCodeAnalyzer(
     private val onQrCodeScanned: (String) -> Unit
 ) : ImageAnalysis.Analyzer {
 
+    private val supportedImageFormats = listOf(
+        ImageFormat.YUV_420_888,
+        ImageFormat.YUV_422_888,
+        ImageFormat.YUV_444_888
+    )
+
+    /**
+     * @image contains information about the specific frame of our camera
+     */
     override fun analyze(image: ImageProxy) {
-        TODO("Not yet implemented")
+        if(image.format in supportedImageFormats){
+            val bytes = image.planes.first().buffer.toByteArray()
+
+            //no deep sense, just write it
+            val source = PlanarYUVLuminanceSource(
+                bytes,
+                image.width,
+                image.height,
+                0,
+                0,
+                image.width,
+                image.height,
+                false
+            )
+
+            val binaryBmp = BinaryBitmap(HybridBinarizer(source))
+            try{
+                //MultiFormatReader is a class which can read different qrcodes, bar codes, etc.
+                val result = MultiFormatReader().apply {
+                    //here set all supported types of codes we would like to scan
+                    setHints(
+                        mapOf(
+                            DecodeHintType.POSSIBLE_FORMATS to arrayListOf(
+                                BarcodeFormat.QR_CODE
+                            )
+                        )
+                    )
+                }.decode(binaryBmp)
+                onQrCodeScanned(result.text)
+            }catch (e: Exception)
+            {
+                e.printStackTrace()
+            }finally {
+                image.close()
+            }
+        }
+    }
+
+    private fun ByteBuffer.toByteArray(): ByteArray {
+        //to make sure that we start from the beginning of our byte array
+        rewind()
+
+        //make sure that we get all bytes in our byteArray and we return that
+        return ByteArray(remaining()).also {
+            get(it)
+        }
     }
 }
