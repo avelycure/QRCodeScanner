@@ -22,7 +22,7 @@ class QrCodeAnalyzer(
      * @image contains information about the specific frame of our camera
      */
     override fun analyze(image: ImageProxy) {
-        if(image.format in supportedImageFormats){
+        if (image.format in supportedImageFormats) {
             val bytes = image.planes.first().buffer.toByteArray()
 
             //no deep sense, just write it
@@ -38,7 +38,7 @@ class QrCodeAnalyzer(
             )
 
             val binaryBmp = BinaryBitmap(HybridBinarizer(source))
-            try{
+            try {
                 //MultiFormatReader is a class which can read different qrcodes, bar codes, etc.
                 val result = MultiFormatReader().apply {
                     //here set all supported types of codes we would like to scan
@@ -51,10 +51,9 @@ class QrCodeAnalyzer(
                     )
                 }.decode(binaryBmp)
                 onQrCodeScanned(result.text)
-            }catch (e: Exception)
-            {
+            } catch (e: Exception) {
                 e.printStackTrace()
-            }finally {
+            } finally {
                 image.close()
             }
         }
